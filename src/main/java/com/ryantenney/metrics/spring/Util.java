@@ -55,6 +55,13 @@ class Util {
 		return name;
 	}
 
+	public static MetricName forCountedMethod(Class<?> klass, Method method, Counted annotation, String scope) {
+	    return new MetricName(chooseDomain(annotation.group(), klass),
+                              chooseType(annotation.type(), klass),
+                              chooseName(annotation.name(), method),
+                              scope);
+	}
+	
 	public static MetricName forTimedMethod(Class<?> klass, Method method, Timed annotation, String scope) {
 		return new MetricName(chooseDomain(annotation.group(), klass),
 							  chooseType(annotation.type(), klass),

@@ -16,7 +16,9 @@
  */
 package com.ryantenney.metrics.spring;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Map;
 
@@ -27,9 +29,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.yammer.metrics.annotation.Counted;
 import com.yammer.metrics.annotation.ExceptionMetered;
 import com.yammer.metrics.annotation.Metered;
 import com.yammer.metrics.annotation.Timed;
+import com.yammer.metrics.core.Counter;
 import com.yammer.metrics.core.Gauge;
 import com.yammer.metrics.core.Meter;
 import com.yammer.metrics.core.Metric;
@@ -51,6 +55,7 @@ public class MeteredClassTest {
 	Gauge<Object> gaugedField;
 	Gauge<Object> gaugedMethod;
 	Gauge<?> gaugedGaugeField;
+	Counter countedMethod;
 	Timer timedMethod;
 	Meter meteredMethod;
 	Meter exceptionMeteredMethod;
@@ -66,6 +71,7 @@ public class MeteredClassTest {
 		gaugedField = (Gauge<Object>) metrics.get(new MetricName(MeteredClass.class, "gaugedField"));
 		gaugedMethod = (Gauge<Object>) metrics.get(new MetricName(MeteredClass.class, "gaugedMethod"));
 		gaugedGaugeField = (Gauge<?>) metrics.get(new MetricName(MeteredClass.class, "gaugedGaugeField"));
+		countedMethod = (Counter) metrics.get(new MetricName(MeteredClass.class, "countedMethod"));
 		timedMethod = (Timer) metrics.get(new MetricName(MeteredClass.class, "timedMethod"));
 		meteredMethod = (Meter) metrics.get(new MetricName(MeteredClass.class, "meteredMethod"));
 		exceptionMeteredMethod = (Meter) metrics.get(new MetricName(MeteredClass.class, "exceptionMeteredMethodExceptions"));
@@ -87,6 +93,24 @@ public class MeteredClassTest {
 		assertEquals(1, gaugedGaugeField.getValue());
 	}
 
+	@Test
+    public void countedMethod() throws Throwable {
+        assertEquals(0, countedMethod.getCount());
+
+        // getCount increments and decrements during normal execution
+        meteredClass.timedMethod(false);
+        assertEquals(0, countedMethod.getCount());
+
+        // getCount decrements even when the method throws an exception
+        try {
+            meteredClass.countedMethod(true);
+            fail();
+        } catch (Throwable e) {
+            assertTrue(e instanceof BogusException);
+        }
+        assertEquals(0, countedMethod.getCount());
+    }
+	
 	@Test
 	public void timedMethod() throws Throwable {
 		assertEquals(0, timedMethod.getCount());
@@ -181,6 +205,11 @@ public class MeteredClassTest {
 			this.gaugedField = value;
 		}
 
+		@Counted
+		public void countedMethod(boolean doThrow) throws Throwable {
+		    if (doThrow) throw new BogusException();
+		}
+		
 		@Timed
 		public void timedMethod(boolean doThrow) throws Throwable {
 			if (doThrow) throw new BogusException();

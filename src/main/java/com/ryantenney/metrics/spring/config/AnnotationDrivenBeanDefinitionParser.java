@@ -28,6 +28,7 @@ import org.w3c.dom.Element;
 
 import com.yammer.metrics.HealthChecks;
 import com.yammer.metrics.Metrics;
+import com.ryantenney.metrics.spring.CountedAnnotationBeanPostProcessor;
 import com.ryantenney.metrics.spring.ExceptionMeteredAnnotationBeanPostProcessor;
 import com.ryantenney.metrics.spring.GaugeAnnotationBeanPostProcessor;
 import com.ryantenney.metrics.spring.HealthCheckBeanPostProcessor;
@@ -82,6 +83,12 @@ class AnnotationDrivenBeanDefinitionParser implements BeanDefinitionParser {
 					.addConstructorArgValue(proxyConfig)
 					.addConstructorArgValue(scope));
 
+		registerComponent(parserContext,
+                build(CountedAnnotationBeanPostProcessor.class, source, ROLE_INFRASTRUCTURE)
+                    .addConstructorArgReference(metricsBeanName)
+                    .addConstructorArgValue(proxyConfig)
+                    .addConstructorArgValue(scope));
+		
 		registerComponent(parserContext,
 				build(TimedAnnotationBeanPostProcessor.class, source, ROLE_INFRASTRUCTURE)
 					.addConstructorArgReference(metricsBeanName)
